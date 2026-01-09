@@ -1,0 +1,3 @@
+# n8n Workflow JSON files go here
+# Each workflow should be in its own file: workflow-name.json
+# Workflows are auto-deployed to n8n instance on merge to main
