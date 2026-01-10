@@ -1,0 +1,80 @@
+name: Validate Workflows
+
+on:
+  pull_request:
+    paths:
+      - 'workflows/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make validation script executable
+        run: chmod +x scripts/validate-workflows.sh
+
+      - name: Run validation script
+        id: validate
+        run: |
+          set +e
+          output=$(./scripts/validate-workflows.sh 2>&1)
+          exit_code=$?
+          echo "validation_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Comment on PR with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `${{ steps.validate.outputs.validation_output }}`;
+            const exitCode = '${{ steps.validate.outputs.exit_code }}';
+            const status = exitCode === '0' ? '✅ Passed' : '❌ Failed';
+            
+            const body = `## Workflow Validation ${status}
+            
+            \`\`\`
+            ${output}
+            \`\`\`
+            
+            ---
+            *Automated validation by GitHub Actions*`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Workflow Validation')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }

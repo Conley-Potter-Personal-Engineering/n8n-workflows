@@ -1,0 +1,120 @@
+name: Deploy Workflows to n8n
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'workflows/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating workflow JSON files..."
+          errors=0
+          for workflow in workflows/*.json; do
+            if [ -f "$workflow" ]; then
+              if ! jq empty "$workflow" 2>/dev/null; then
+                echo "✗ Invalid JSON: $workflow"
+                errors=$((errors + 1))
+              else
+                echo "✓ Valid JSON: $workflow"
+              fi
+            fi
+          done
+          
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors invalid JSON file(s)"
+            exit 1
+          fi
+          echo "All JSON files are valid"
+
+      - name: Deploy workflows to n8n
+        env:
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+          N8N_BASE_URL: ${{ secrets.N8N_BASE_URL }}
+        run: |
+          if [ -z "$N8N_API_KEY" ]; then
+            echo "Error: N8N_API_KEY secret is not set"
+            exit 1
+          fi
+          
+          if [ -z "$N8N_BASE_URL" ]; then
+            echo "Error: N8N_BASE_URL secret is not set"
+            exit 1
+          fi
+          
+          echo "Deploying workflows to n8n instance..."
+          deployed=0
+          failed=0
+          
+          for workflow in workflows/*.json; do
+            if [ -f "$workflow" ]; then
+              workflow_name=$(basename "$workflow")
+              echo "Deploying $workflow_name..."
+              
+              # Extract workflow ID if present (for updates)
+              workflow_id=$(jq -r '.id // empty' "$workflow")
+              
+              if [ -n "$workflow_id" ]; then
+                # Update existing workflow
+                response=$(curl -s -w "\n%{http_code}" -X PUT "$N8N_BASE_URL/api/v1/workflows/$workflow_id" \
+                  -H "X-N8N-API-KEY: $N8N_API_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d @"$workflow")
+              else
+                # Create new workflow
+                response=$(curl -s -w "\n%{http_code}" -X POST "$N8N_BASE_URL/api/v1/workflows" \
+                  -H "X-N8N-API-KEY: $N8N_API_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d @"$workflow")
+              fi
+              
+              http_code=$(echo "$response" | tail -n1)
+              body=$(echo "$response" | head -n-1)
+              
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "✓ Successfully deployed $workflow_name"
+                deployed=$((deployed + 1))
+              else
+                echo "✗ Failed to deploy $workflow_name (HTTP $http_code)"
+                echo "Response: $body"
+                failed=$((failed + 1))
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "Deployment Summary:"
+          echo "  Deployed: $deployed"
+          echo "  Failed: $failed"
+          
+          if [ $failed -gt 0 ]; then
+            exit 1
+          fi
+
+# =============================================================================
+# Alternative: SSH deployment (uncomment if API is not available)
+# =============================================================================
+# - name: Deploy via SSH
+#   uses: appleboy/ssh-action@master
+#   with:
+#     host: ${{ secrets.VPS_HOST }}
+#     username: ${{ secrets.VPS_USER }}
+#     key: ${{ secrets.VPS_SSH_KEY }}
+#     script: |
+#       cd /path/to/n8n-workflows
+#       git pull origin master
+#       for workflow in workflows/*.json; do
+#         n8n import:workflow --input="$workflow"
+#       done
