@@ -1,0 +1,130 @@
+name: Test n8n Workflows
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: ['**']
+    paths:
+      - 'workflows/**'
+      - 'scripts/**'
+      - 'test/**'
+      - '.github/workflows/**'
+
+jobs:
+  validate:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Validate workflow JSON (Bash)
+        id: bash_validate
+        run: |
+          set +e
+          output=$(./scripts/validate-workflows.sh 2>&1)
+          exit_code=$?
+          echo "validation_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Validate workflow JSON (Node.js)
+        id: node_validate
+        run: node scripts/validate-workflows.js
+
+      - name: Validate test fixtures
+        run: node scripts/validate-workflows.js test/test-workflow.json
+
+      - name: Test deployment script (dry run)
+        env:
+          DRY_RUN: true
+        run: ./scripts/test-deploy.sh
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `${{ steps.bash_validate.outputs.validation_output }}`;
+            const exitCode = '${{ steps.bash_validate.outputs.exit_code }}';
+            const status = exitCode === '0' ? '✅ Passed' : '❌ Failed';
+            
+            const body = `## Workflow Validation ${status}
+            
+            \`\`\`
+            ${output}
+            \`\`\`
+            
+            ---
+            *Automated validation by GitHub Actions*`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Workflow Validation')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Run integration tests
+        env:
+          N8N_TEST_API_KEY: ${{ secrets.N8N_TEST_API_KEY }}
+          N8N_TEST_BASE_URL: ${{ secrets.N8N_TEST_BASE_URL }}
+        run: |
+          if [ -z "$N8N_TEST_API_KEY" ] || [ -z "$N8N_TEST_BASE_URL" ]; then
+            echo "⚠️ Integration test secrets not configured, skipping..."
+            echo "Set N8N_TEST_API_KEY and N8N_TEST_BASE_URL in repository secrets to enable integration tests."
+            exit 0
+          fi
+          ./scripts/integration-test.sh
