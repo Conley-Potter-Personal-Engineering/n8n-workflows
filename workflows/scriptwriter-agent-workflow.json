@@ -128,7 +128,8 @@
       "position": [
         1080,
         300
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {

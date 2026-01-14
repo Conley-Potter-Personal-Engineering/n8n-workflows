@@ -42,7 +42,7 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 
 ## Processing Steps
 1. Validate required fields and return a 400 error if missing.
-2. Emit `workflow.stage.start` system event.
+2. Emit `workflow.stage.start` system event (best-effort; does not block execution).
 3. Invoke Scriptwriter Agent with retry and timeout handling.
 4. On success, emit `workflow.stage.success` and return normalized response.
 5. On failure, emit `workflow.stage.error` and return error response.
