@@ -96,7 +96,7 @@ Set these environment variables in your n8n instance:
 | `ACE_API_KEY` | API key for authenticating with ACE backend |
 | `TIKTOK_ACCESS_TOKEN` | OAuth token for TikTok API access |
 | `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_KEY` | Supabase service role key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 
 > [!CAUTION]
 > Never commit actual credentials or secrets to this repository. All secrets should be configured directly in the n8n instance.

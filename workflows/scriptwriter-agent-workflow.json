@@ -1,0 +1,708 @@
+{
+  "name": "Scriptwriter Agent Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scriptwriter-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\", \"correlation_id\", \"workflow_id\"];\nconst missing = required.filter((key) => !body[key]);\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
+      },
+      "id": "Validate Input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "Has Required Fields",
+      "name": "Has Required Fields",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.body || {};\nconst missing = $json.missing || [];\nconst correlationId = body.correlation_id || \"\";\nconst workflowId = body.workflow_id || \"\";\nconst message = `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \"),\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
+      },
+      "id": "Build Validation Error",
+      "name": "Build Validation Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        860,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json.event_payload}}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Emit Error Event (Validation)",
+      "name": "Emit Error Event (Validation)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1080,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$node[\"Build Validation Error\"].json.response_payload}}",
+        "responseCode": "={{$node[\"Build Validation Error\"].json.statusCode}}"
+      },
+      "id": "Respond Validation Error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.body || {};\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id: body.correlation_id,\n    workflow_id: body.workflow_id,\n    context: body.context || {},\n    start_time: Date.now()\n  }\n}];"
+      },
+      "id": "Init Context",
+      "name": "Init Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"event_type\": \"workflow.stage.start\",\n  \"event_category\": \"workflow\",\n  \"severity\": \"info\",\n  \"message\": \"Starting scriptwriter agent\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"metadata\": {\n    \"stage\": \"scriptwriter\",\n    \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\"\n  }\n}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Emit Start Event",
+      "name": "Emit Start Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {
+          "timeout": 120000
+        },
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Scriptwriter Attempt 1",
+      "name": "Scriptwriter Attempt 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1300,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error === undefined}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "Attempt 1 Success?",
+      "name": "Attempt 1 Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "Wait 30s",
+      "name": "Wait 30s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {
+          "timeout": 120000
+        },
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Scriptwriter Attempt 2",
+      "name": "Scriptwriter Attempt 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1960,
+        360
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error === undefined}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "Attempt 2 Success?",
+      "name": "Attempt 2 Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "Wait 60s",
+      "name": "Wait 60s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {
+          "timeout": 120000
+        },
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Scriptwriter Attempt 3",
+      "name": "Scriptwriter Attempt 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2620,
+        420
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error === undefined}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "Attempt 3 Success?",
+      "name": "Attempt 3 Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
+      },
+      "id": "Build Success Payload",
+      "name": "Build Success Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json.event_payload}}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Emit Success Event",
+      "name": "Emit Success Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$node[\"Build Success Payload\"].json.response_payload}}",
+        "responseCode": 200
+      },
+      "id": "Respond Success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst err = response.error || {};\nconst message = err.message || \"Scriptwriter agent failed\";\nconst errorCode = err.code || err.statusCode || \"SCRIPTWRITER_FAILED\";\nconst details = err.description || err.details || err.message || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: errorCode,\n    error_details: details,\n    retry_count: 2,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"SCRIPTWRITER_FAILED\",\n    message\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 500 } }];"
+      },
+      "id": "Build Error Payload",
+      "name": "Build Error Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        3060,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json.event_payload}}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Emit Error Event",
+      "name": "Emit Error Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        3280,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$node[\"Build Error Payload\"].json.response_payload}}",
+        "responseCode": "={{$node[\"Build Error Payload\"].json.statusCode}}"
+      },
+      "id": "Respond Error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        3500,
+        520
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "Error Trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const error = $json.error || {};\nconst execution = $json.execution || {};\nconst correlationId = execution?.data?.main?.[0]?.[0]?.json?.body?.correlation_id || execution?.data?.main?.[0]?.[0]?.json?.correlation_id || \"\";\nconst workflowId = execution?.data?.main?.[0]?.[0]?.json?.body?.workflow_id || execution?.data?.main?.[0]?.[0]?.json?.workflow_id || \"\";\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"UNHANDLED_WORKFLOW_ERROR\",\n    error_details: error.stack || error.message || null,\n    retry_count: 0\n  }\n};\nreturn [{ json: { event_payload: eventPayload } }];"
+      },
+      "id": "Build Unhandled Error Event",
+      "name": "Build Unhandled Error Event",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        420,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
+        "authentication": "none",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json.event_payload}}",
+        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+      },
+      "id": "Emit Error Event (Unhandled)",
+      "name": "Emit Error Event (Unhandled)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Has Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Init Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Emit Error Event (Validation)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Error Event (Validation)": {
+      "main": [
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Context": {
+      "main": [
+        [
+          {
+            "node": "Emit Start Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Start Event": {
+      "main": [
+        [
+          {
+            "node": "Scriptwriter Attempt 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scriptwriter Attempt 1": {
+      "main": [
+        [
+          {
+            "node": "Attempt 1 Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt 1 Success?": {
+      "main": [
+        [
+          {
+            "node": "Build Success Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30s": {
+      "main": [
+        [
+          {
+            "node": "Scriptwriter Attempt 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scriptwriter Attempt 2": {
+      "main": [
+        [
+          {
+            "node": "Attempt 2 Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt 2 Success?": {
+      "main": [
+        [
+          {
+            "node": "Build Success Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 60s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 60s": {
+      "main": [
+        [
+          {
+            "node": "Scriptwriter Attempt 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scriptwriter Attempt 3": {
+      "main": [
+        [
+          {
+            "node": "Attempt 3 Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt 3 Success?": {
+      "main": [
+        [
+          {
+            "node": "Build Success Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Error Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Payload": {
+      "main": [
+        [
+          {
+            "node": "Emit Success Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Success Event": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Payload": {
+      "main": [
+        [
+          {
+            "node": "Emit Error Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Error Event": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Unhandled Error Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Unhandled Error Event": {
+      "main": [
+        [
+          {
+            "node": "Emit Error Event (Unhandled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "agent"
+    },
+    {
+      "name": "scriptwriter"
+    },
+    {
+      "name": "content-generation"
+    }
+  ],
+  "meta": {
+    "description": "Invokes the Scriptwriter Agent to generate video scripts with trend and pattern context"
+  }
+}
