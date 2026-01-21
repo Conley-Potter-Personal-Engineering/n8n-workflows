@@ -66,21 +66,18 @@ jobs:
               # Extract workflow ID if present (for updates)
               workflow_id=$(jq -r '.id // empty' "$workflow")
               
-              # Create a clean payload with only required fields
-              payload=$(jq '{name, nodes, connections, settings, staticData, pinData, versionId}' "$workflow")
-
               if [ -n "$workflow_id" ]; then
                 # Update existing workflow
                 response=$(curl -s -w "\n%{http_code}" -X PUT "$N8N_BASE_URL/api/v1/workflows/$workflow_id" \
                   -H "X-N8N-API-KEY: $N8N_API_KEY" \
                   -H "Content-Type: application/json" \
-                  -d "$payload")
+                  -d @"$workflow")
               else
                 # Create new workflow
                 response=$(curl -s -w "\n%{http_code}" -X POST "$N8N_BASE_URL/api/v1/workflows" \
                   -H "X-N8N-API-KEY: $N8N_API_KEY" \
                   -H "Content-Type: application/json" \
-                  -d "$payload")
+                  -d @"$workflow")
               fi
               
               http_code=$(echo "$response" | tail -n1)
