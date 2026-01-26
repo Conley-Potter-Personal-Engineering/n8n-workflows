@@ -93,10 +93,11 @@ for workflow in "$@"; do
     if [ -n "$workflow_id" ]; then
         # Update existing workflow
         echo "  Updating workflow: $display_name (ID: $workflow_id)"
+        update_payload=$(jq 'del(.active)' "$workflow")
         response=$(curl -s -w "\n%{http_code}" -X PUT "$N8N_BASE_URL/api/v1/workflows/$workflow_id" \
             -H "X-N8N-API-KEY: $N8N_API_KEY" \
             -H "Content-Type: application/json" \
-            -d @"$workflow")
+            -d "$update_payload")
     else
         # Create new workflow
         echo "  Creating new workflow: $display_name"
