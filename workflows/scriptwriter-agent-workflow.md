@@ -12,27 +12,28 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 
 ## Input contract
 ### Required fields
-- `product_id` (string)
-- `correlation_id` (string)
-- `workflow_id` (string)
+- `product_id` (string, UUID)
+- `creativePatternId` (string, UUID)
+- `trendSnapshotId` (string, UUID)
 
 ### Optional fields
-- `experiment_id` (string)
+- `correlation_id` (string, UUID) - If not provided, will be auto-generated
+- `experiment_id` (string, UUID)
 - `context` (object)
-  - `trend_snapshot_id` (string)
-  - `creative_pattern_id` (string)
-  - `creative_variables` (object)
+  - `creative_variables` (object) - Additional creative parameters
+
+### Auto-generated fields
+- `workflow_id` (string, UUID) - Always generated internally; must not be provided as input
 
 ### Example payload
 ```json
 {
   "product_id": "prod_123",
+  "creativePatternId": "pattern_xyz",
+  "trendSnapshotId": "trend_abc",
   "experiment_id": "exp_456",
   "correlation_id": "corr_789",
-  "workflow_id": "wf_001",
   "context": {
-    "trend_snapshot_id": "trend_abc",
-    "creative_pattern_id": "pattern_xyz",
     "creative_variables": {
       "hook_style": "problem-solution"
     }
@@ -62,7 +63,9 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
   "success": true,
   "data": {
     "script_id": "script_123",
-    "script": "..."
+    "script": "...",
+    "workflow_id": "wf_auto_generated",
+    "correlation_id": "corr_789_or_auto_generated"
   }
 }
 ```
@@ -74,7 +77,9 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
   "error": {
     "code": "SCRIPTWRITER_FAILED",
     "message": "error.message"
-  }
+  },
+  "workflow_id": "wf_auto_generated",
+  "correlation_id": "corr_789_or_auto_generated"
 }
 ```
 
