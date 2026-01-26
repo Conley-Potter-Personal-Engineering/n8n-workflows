@@ -3,9 +3,12 @@ name: Deploy Workflows to n8n
 on:
   push:
     branches:
+      - main
       - master
     paths:
       - 'workflows/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:
