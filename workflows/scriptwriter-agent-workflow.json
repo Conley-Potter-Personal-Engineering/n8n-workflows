@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\"];\nconst missing = required.filter((key) => !body[key]);\nif (body.workflow_id) {\n  return [{\n    json: {\n      valid: false,\n      missing: [],\n      body,\n      error: \"workflow_id must not be provided as input - it is auto-generated\"\n    }\n  }];\n}\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
+        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\", \"creativePatternId\", \"trendSnapshotId\"];\nconst missing = required.filter((key) => !body[key]);\nif (body.workflow_id) {\n  return [{\n    json: {\n      valid: false,\n      missing: [],\n      body,\n      error: \"workflow_id must not be provided as input - it is auto-generated\"\n    }\n  }];\n}\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
       },
       "id": "Validate Input",
       "name": "Validate Input",
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const { randomUUID } = require('crypto');\nconst body = $json.body || {};\nconst workflow_id = randomUUID();\nconst correlation_id = body.correlation_id || randomUUID();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    context: body.context || {},\n    start_time: Date.now()\n  }\n}];"
+        "functionCode": "const { randomUUID } = require('crypto');\nconst body = $json.body || {};\nconst workflow_id = randomUUID();\nconst correlation_id = body.correlation_id || randomUUID();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    creative_pattern_id: body.creativePatternId,\n    trend_snapshot_id: body.trendSnapshotId,\n    context: body.context || {},\n    start_time: Date.now()\n  }\n}];"
       },
       "id": "Init Context",
       "name": "Init Context",
@@ -118,7 +118,7 @@
         "sendBody": true,
         "jsonParameters": true,
         "options": {},
-        "bodyParametersJson": "={\n  \"event_type\": \"workflow.stage.start\",\n  \"event_category\": \"workflow\",\n  \"severity\": \"info\",\n  \"message\": \"Starting scriptwriter agent\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"metadata\": {\n    \"stage\": \"scriptwriter\",\n    \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\"\n  }\n}",
+        "bodyParametersJson": "={\n  \"event_type\": \"workflow.stage.start\",\n  \"event_category\": \"workflow\",\n  \"severity\": \"info\",\n  \"message\": \"Starting scriptwriter agent\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"metadata\": {\n    \"stage\": \"scriptwriter\",\n    \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\",\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\"\n  }\n}",
         "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
       },
       "id": "Emit Start Event",
@@ -141,7 +141,7 @@
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
         "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
       },
       "id": "Scriptwriter Attempt 1",
@@ -198,7 +198,7 @@
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
         "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
       },
       "id": "Scriptwriter Attempt 2",
@@ -255,7 +255,7 @@
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.context.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.context.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
+        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\",\n    \"creative_variables\": {{$node[\"Init Context\"].json.context.creative_variables || {}}}\n  }\n}",
         "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
       },
       "id": "Scriptwriter Attempt 3",
@@ -290,7 +290,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: $node[\"Init Context\"].json.workflow_id,\n    correlation_id: $node[\"Init Context\"].json.correlation_id\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration,\n    creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id,\n    trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: $node[\"Init Context\"].json.workflow_id,\n    correlation_id: $node[\"Init Context\"].json.correlation_id\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
       },
       "id": "Build Success Payload",
       "name": "Build Success Payload",
