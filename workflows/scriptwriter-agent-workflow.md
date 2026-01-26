@@ -19,8 +19,6 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 ### Optional fields
 - `correlation_id` (string, UUID) - If not provided, will be auto-generated
 - `experiment_id` (string, UUID)
-- `context` (object)
-  - `creative_variables` (object) - Additional creative parameters
 
 ### Auto-generated fields
 - `workflow_id` (string, UUID) - Always generated internally; must not be provided as input
@@ -33,11 +31,6 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
   "trendSnapshotId": "trend_abc",
   "experiment_id": "exp_456",
   "correlation_id": "corr_789",
-  "context": {
-    "creative_variables": {
-      "hook_style": "problem-solution"
-    }
-  }
 }
 ```
 
@@ -96,7 +89,6 @@ All events include `correlation_id` and `workflow_id`.
 
 ## Notes
 - Workflow is stateless; all domain logic lives in the backend agent.
-- `context.creative_variables` defaults to `{}` if not provided.
 
 ## Validation
 Local test suite output:
