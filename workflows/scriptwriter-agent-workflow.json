@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\", \"correlation_id\", \"workflow_id\"];\nconst missing = required.filter((key) => !body[key]);\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
+        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\"];\nconst missing = required.filter((key) => !body[key]);\nif (body.workflow_id) {\n  return [{\n    json: {\n      valid: false,\n      missing: [],\n      body,\n      error: \"workflow_id must not be provided as input - it is auto-generated\"\n    }\n  }];\n}\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
       },
       "id": "Validate Input",
       "name": "Validate Input",
@@ -52,7 +52,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nconst missing = $json.missing || [];\nconst correlationId = body.correlation_id || \"\";\nconst workflowId = body.workflow_id || \"\";\nconst message = `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \"),\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
+        "functionCode": "const { randomUUID } = require('crypto');\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || randomUUID();\nconst workflowId = randomUUID();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
       },
       "id": "Build Validation Error",
       "name": "Build Validation Error",
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id: body.correlation_id,\n    workflow_id: body.workflow_id,\n    context: body.context || {},\n    start_time: Date.now()\n  }\n}];"
+        "functionCode": "const { randomUUID } = require('crypto');\nconst body = $json.body || {};\nconst workflow_id = randomUUID();\nconst correlation_id = body.correlation_id || randomUUID();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    context: body.context || {},\n    start_time: Date.now()\n  }\n}];"
       },
       "id": "Init Context",
       "name": "Init Context",
@@ -290,7 +290,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: $node[\"Init Context\"].json.workflow_id,\n    correlation_id: $node[\"Init Context\"].json.correlation_id\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
       },
       "id": "Build Success Payload",
       "name": "Build Success Payload",
@@ -337,7 +337,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst err = response.error || {};\nconst message = err.message || \"Scriptwriter agent failed\";\nconst errorCode = err.code || err.statusCode || \"SCRIPTWRITER_FAILED\";\nconst details = err.description || err.details || err.message || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: errorCode,\n    error_details: details,\n    retry_count: 2,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"SCRIPTWRITER_FAILED\",\n    message\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 500 } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst err = response.error || {};\nconst message = err.message || \"Scriptwriter agent failed\";\nconst errorCode = err.code || err.statusCode || \"SCRIPTWRITER_FAILED\";\nconst details = err.description || err.details || err.message || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: errorCode,\n    error_details: details,\n    retry_count: 2,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"SCRIPTWRITER_FAILED\",\n    message\n  },\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 500 } }];"
       },
       "id": "Build Error Payload",
       "name": "Build Error Payload",
@@ -395,7 +395,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const error = $json.error || {};\nconst execution = $json.execution || {};\nconst correlationId = execution?.data?.main?.[0]?.[0]?.json?.body?.correlation_id || execution?.data?.main?.[0]?.[0]?.json?.correlation_id || \"\";\nconst workflowId = execution?.data?.main?.[0]?.[0]?.json?.body?.workflow_id || execution?.data?.main?.[0]?.[0]?.json?.workflow_id || \"\";\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"UNHANDLED_WORKFLOW_ERROR\",\n    error_details: error.stack || error.message || null,\n    retry_count: 0\n  }\n};\nreturn [{ json: { event_payload: eventPayload } }];"
+        "functionCode": "const { randomUUID } = require('crypto');\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst correlationId = execution?.data?.main?.[0]?.[0]?.json?.body?.correlation_id || execution?.data?.main?.[0]?.[0]?.json?.correlation_id || randomUUID();\nconst workflowId = execution?.data?.main?.[0]?.[0]?.json?.body?.workflow_id || execution?.data?.main?.[0]?.[0]?.json?.workflow_id || randomUUID();\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"UNHANDLED_WORKFLOW_ERROR\",\n    error_details: error.stack || error.message || null,\n    retry_count: 0\n  }\n};\nreturn [{ json: { event_payload: eventPayload } }];"
       },
       "id": "Build Unhandled Error Event",
       "name": "Build Unhandled Error Event",
