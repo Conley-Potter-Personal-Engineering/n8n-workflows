@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst workflow_id = uuid();\nconst correlation_id = body.correlation_id || uuid();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    creative_pattern_id: body.creativePatternId,\n    trend_snapshot_id: body.trendSnapshotId,\n    start_time: Date.now()\n  }\n}];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst workflow_id = uuid();\nconst correlation_id = body.correlation_id || uuid();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    creative_pattern_id: body.creativePatternId,\n    trend_snapshot_id: body.trendSnapshotId,\n    context: body.context,\n    start_time: Date.now()\n  }\n}];"
       },
       "id": "Init Context",
       "name": "Init Context",
@@ -115,11 +115,50 @@
         "method": "POST",
         "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
         "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
         "sendBody": true,
-        "jsonParameters": true,
-        "options": {},
-        "bodyParametersJson": "={\n  \"event_type\": \"workflow.stage.start\",\n  \"event_category\": \"workflow\",\n  \"severity\": \"info\",\n  \"message\": \"Starting scriptwriter agent\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"metadata\": {\n    \"stage\": \"scriptwriter\",\n    \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\",\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\"\n  }\n}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event_type",
+              "value": "workflow.stage.start"
+            },
+            {
+              "name": "event_category",
+              "value": "workflow"
+            },
+            {
+              "name": "severity",
+              "value": "info"
+            },
+            {
+              "name": "message",
+              "value": "Starting scriptwriter agent"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$json.workflow_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ ({\n  stage: \"scriptwriter\",\n  product_id: $json.product_id,\n  experiment_id: $json.experiment_id,\n  context: $json.context\n}) }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "Emit Start Event",
       "name": "Emit Start Event",
@@ -290,7 +329,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    duration_ms: duration,\n    creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id,\n    trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: $node[\"Init Context\"].json.workflow_id,\n    correlation_id: $node[\"Init Context\"].json.correlation_id\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst workflowId = $node[\"Init Context\"].json.workflow_id;\nconst correlationId = $node[\"Init Context\"].json.correlation_id;\nconst productId = $node[\"Init Context\"].json.product_id;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    product_id: productId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: workflowId,\n    correlation_id: correlationId\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, duration_ms: duration, data } }];"
       },
       "id": "Build Success Payload",
       "name": "Build Success Payload",
@@ -306,11 +345,50 @@
         "method": "POST",
         "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
         "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
         "sendBody": true,
-        "jsonParameters": true,
-        "options": {},
-        "bodyParametersJson": "={{$json.event_payload}}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event_type",
+              "value": "workflow.stage.success"
+            },
+            {
+              "name": "event_category",
+              "value": "workflow"
+            },
+            {
+              "name": "severity",
+              "value": "info"
+            },
+            {
+              "name": "message",
+              "value": "Scriptwriter agent completed successfully"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$json.workflow_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ ({\n  stage: \"scriptwriter\",\n  script_id: $json.data.script_id,\n  product_id: $json.product_id,\n  duration_ms: $json.duration_ms\n}) }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "Emit Success Event",
       "name": "Emit Success Event",
@@ -395,7 +473,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || bodyJson.correlation_id || primaryJson.correlation_id || uuid();\nconst workflowId = initContextJson.workflow_id || bodyJson.workflow_id || primaryJson.workflow_id || uuid();\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"UNHANDLED_WORKFLOW_ERROR\",\n    error_details: error.stack || error.message || null,\n    retry_count: 0\n  }\n};\nreturn [{ json: { event_payload: eventPayload } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || bodyJson.correlation_id || primaryJson.correlation_id || uuid();\nconst workflowId = initContextJson.workflow_id || bodyJson.workflow_id || primaryJson.workflow_id || uuid();\nconst productId = initContextJson.product_id || bodyJson.product_id || primaryJson.product_id || null;\nconst retryCount = primaryJson.retry_count || 0;\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"SCRIPTWRITER_FAILED\",\n    error_details: error.details || error.message || null,\n    product_id: productId,\n    retry_count: retryCount\n  }\n};\nreturn [{ json: { event_payload: eventPayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, retry_count: retryCount, error } }];"
       },
       "id": "Build Unhandled Error Event",
       "name": "Build Unhandled Error Event",
@@ -411,11 +489,50 @@
         "method": "POST",
         "url": "={{$env.ACE_BACKEND_URL}}/api/system-events",
         "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
         "sendBody": true,
-        "jsonParameters": true,
-        "options": {},
-        "bodyParametersJson": "={{$json.event_payload}}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event_type",
+              "value": "workflow.stage.error"
+            },
+            {
+              "name": "event_category",
+              "value": "workflow"
+            },
+            {
+              "name": "severity",
+              "value": "error"
+            },
+            {
+              "name": "message",
+              "value": "={{\"Scriptwriter agent failed: \" + ($json.error.message || \"Unknown error\")}}"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$json.workflow_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$json.correlation_id}}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ ({\n  stage: \"scriptwriter\",\n  error_code: $json.error.code || \"SCRIPTWRITER_FAILED\",\n  error_details: $json.error.details || $json.error.message,\n  product_id: $json.product_id,\n  retry_count: $json.retry_count || 0\n}) }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "Emit Error Event (Unhandled)",
       "name": "Emit Error Event (Unhandled)",
