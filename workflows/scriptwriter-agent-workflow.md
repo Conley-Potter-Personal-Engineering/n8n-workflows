@@ -23,6 +23,7 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 
 ### Accepted input formats
 - The webhook can receive either snake_case or camelCase fields; the workflow normalizes to camelCase before calling the backend.
+- The workflow accepts inputs whether n8n provides the payload at `$json.body` or directly on `$json` (some webhook configurations or content types differ). If your client sends a raw JSON string, ensure `Content-Type: application/json` so n8n parses it.
 
 ### Example payload (camelCase)
 ```json
