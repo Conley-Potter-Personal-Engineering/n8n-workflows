@@ -173,7 +173,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -265,7 +265,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -357,7 +357,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -919,7 +919,7 @@
       "name": "agent"
     },
     {
-      "name": "scriptwriter"
+      "name": "ScriptwriterAgent"
     },
     {
       "name": "content-generation"
