@@ -176,12 +176,47 @@
         "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
-        "jsonParameters": true,
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\"\n  }\n}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_name",
+              "value": "ScriptwriterAgent"
+            },
+            {
+              "name": "product_id",
+              "value": "={{$node[\"Init Context\"].json.product_id}}"
+            },
+            {
+              "name": "experiment_id",
+              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+            },
+            {
+              "name": "context",
+              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+            }
+          ]
+        }
       },
       "id": "Scriptwriter Attempt 1",
       "name": "Scriptwriter Attempt 1",
@@ -233,12 +268,47 @@
         "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
-        "jsonParameters": true,
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\"\n  }\n}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_name",
+              "value": "ScriptwriterAgent"
+            },
+            {
+              "name": "product_id",
+              "value": "={{$node[\"Init Context\"].json.product_id}}"
+            },
+            {
+              "name": "experiment_id",
+              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+            },
+            {
+              "name": "context",
+              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+            }
+          ]
+        }
       },
       "id": "Scriptwriter Attempt 2",
       "name": "Scriptwriter Attempt 2",
@@ -290,12 +360,47 @@
         "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
-        "jsonParameters": true,
         "options": {
           "timeout": 120000
         },
-        "bodyParametersJson": "={\n  \"product_id\": \"{{$node[\"Init Context\"].json.product_id}}\",\n  \"experiment_id\": \"{{$node[\"Init Context\"].json.experiment_id}}\",\n  \"correlation_id\": \"{{$node[\"Init Context\"].json.correlation_id}}\",\n  \"workflow_id\": \"{{$node[\"Init Context\"].json.workflow_id}}\",\n  \"context\": {\n    \"trend_snapshot_id\": \"{{$node[\"Init Context\"].json.trend_snapshot_id}}\",\n    \"creative_pattern_id\": \"{{$node[\"Init Context\"].json.creative_pattern_id}}\"\n  }\n}",
-        "headerParametersJson": "={\"x-api-key\": \"{{$env.ACE_API_KEY}}\"}"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ACE_API_KEY}}"
+            }
+          ]
+        },
+        "bodyContentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "agent_name",
+              "value": "ScriptwriterAgent"
+            },
+            {
+              "name": "product_id",
+              "value": "={{$node[\"Init Context\"].json.product_id}}"
+            },
+            {
+              "name": "experiment_id",
+              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+            },
+            {
+              "name": "correlation_id",
+              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+            },
+            {
+              "name": "workflow_id",
+              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+            },
+            {
+              "name": "context",
+              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+            }
+          ]
+        }
       },
       "id": "Scriptwriter Attempt 3",
       "name": "Scriptwriter Attempt 3",
@@ -516,7 +621,7 @@
             },
             {
               "name": "message",
-              "value": "={{\"Scriptwriter agent failed: \" + ($json.error.message || \"Unknown error\")}}"
+              "value": "={{\"Scriptwriter agent failed: \" + $json.error.message}}"
             },
             {
               "name": "workflow_id",
