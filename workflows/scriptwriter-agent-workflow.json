@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nconst required = [\"product_id\", \"creativePatternId\", \"trendSnapshotId\"];\nconst missing = required.filter((key) => !body[key]);\nif (body.workflow_id) {\n  return [{\n    json: {\n      valid: false,\n      missing: [],\n      body,\n      error: \"workflow_id must not be provided as input - it is auto-generated\"\n    }\n  }];\n}\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
+        "functionCode": "const body = $json.body || {};\nconst required = [\"productId\", \"creativePatternId\", \"trendSnapshotId\"];\nconst hasValue = (key) => {\n  const snakeKey = key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`);\n  return body[key] || body[snakeKey];\n};\nconst missing = required.filter((key) => !hasValue(key));\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
       },
       "id": "Validate Input",
       "name": "Validate Input",
@@ -52,7 +52,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || uuid();\nconst workflowId = uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || body.correlationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
       },
       "id": "Build Validation Error",
       "name": "Build Validation Error",
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst workflow_id = uuid();\nconst correlation_id = body.correlation_id || uuid();\nreturn [{\n  json: {\n    product_id: body.product_id,\n    experiment_id: body.experiment_id,\n    correlation_id,\n    workflow_id,\n    creative_pattern_id: body.creativePatternId,\n    trend_snapshot_id: body.trendSnapshotId,\n    context: body.context,\n    start_time: Date.now()\n  }\n}];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst productId = body.product_id || body.productId;\nconst creativePatternId = body.creative_pattern_id || body.creativePatternId;\nconst trendSnapshotId = body.trend_snapshot_id || body.trendSnapshotId;\nconst experimentId = body.experiment_id || body.experimentId;\nconst correlationId = body.correlation_id || body.correlationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || uuid();\nconst context = body.context || null;\nreturn [{\n  json: {\n    product_id: productId,\n    productId,\n    creative_pattern_id: creativePatternId,\n    creativePatternId,\n    trend_snapshot_id: trendSnapshotId,\n    trendSnapshotId,\n    experiment_id: experimentId,\n    experimentId,\n    correlation_id: correlationId,\n    correlationId,\n    workflow_id: workflowId,\n    workflowId,\n    context,\n    start_time: Date.now()\n  }\n}];"
       },
       "id": "Init Context",
       "name": "Init Context",
@@ -192,28 +192,28 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "agent_name",
-              "value": "ScriptwriterAgent"
+              "name": "productId",
+              "value": "={{$node[\"Init Context\"].json.productId}}"
             },
             {
-              "name": "product_id",
-              "value": "={{$node[\"Init Context\"].json.product_id}}"
+              "name": "creativePatternId",
+              "value": "={{$node[\"Init Context\"].json.creativePatternId}}"
             },
             {
-              "name": "experiment_id",
-              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+              "name": "trendSnapshotId",
+              "value": "={{$node[\"Init Context\"].json.trendSnapshotId}}"
             },
             {
-              "name": "correlation_id",
-              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+              "name": "experimentId",
+              "value": "={{$node[\"Init Context\"].json.experimentId}}"
             },
             {
-              "name": "workflow_id",
-              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+              "name": "correlationId",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             },
             {
-              "name": "context",
-              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+              "name": "workflowId",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
             }
           ]
         }
@@ -284,28 +284,28 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "agent_name",
-              "value": "ScriptwriterAgent"
+              "name": "productId",
+              "value": "={{$node[\"Init Context\"].json.productId}}"
             },
             {
-              "name": "product_id",
-              "value": "={{$node[\"Init Context\"].json.product_id}}"
+              "name": "creativePatternId",
+              "value": "={{$node[\"Init Context\"].json.creativePatternId}}"
             },
             {
-              "name": "experiment_id",
-              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+              "name": "trendSnapshotId",
+              "value": "={{$node[\"Init Context\"].json.trendSnapshotId}}"
             },
             {
-              "name": "correlation_id",
-              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+              "name": "experimentId",
+              "value": "={{$node[\"Init Context\"].json.experimentId}}"
             },
             {
-              "name": "workflow_id",
-              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+              "name": "correlationId",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             },
             {
-              "name": "context",
-              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+              "name": "workflowId",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
             }
           ]
         }
@@ -376,28 +376,28 @@
         "bodyParameters": {
           "parameters": [
             {
-              "name": "agent_name",
-              "value": "ScriptwriterAgent"
+              "name": "productId",
+              "value": "={{$node[\"Init Context\"].json.productId}}"
             },
             {
-              "name": "product_id",
-              "value": "={{$node[\"Init Context\"].json.product_id}}"
+              "name": "creativePatternId",
+              "value": "={{$node[\"Init Context\"].json.creativePatternId}}"
             },
             {
-              "name": "experiment_id",
-              "value": "={{$node[\"Init Context\"].json.experiment_id}}"
+              "name": "trendSnapshotId",
+              "value": "={{$node[\"Init Context\"].json.trendSnapshotId}}"
             },
             {
-              "name": "correlation_id",
-              "value": "={{$node[\"Init Context\"].json.correlation_id}}"
+              "name": "experimentId",
+              "value": "={{$node[\"Init Context\"].json.experimentId}}"
             },
             {
-              "name": "workflow_id",
-              "value": "={{$node[\"Init Context\"].json.workflow_id}}"
+              "name": "correlationId",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             },
             {
-              "name": "context",
-              "value": "={{ ({\n  ...($node[\"Init Context\"].json.context || {}),\n  trend_snapshot_id: $node[\"Init Context\"].json.trend_snapshot_id,\n  creative_pattern_id: $node[\"Init Context\"].json.creative_pattern_id\n}) }}"
+              "name": "workflowId",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
             }
           ]
         }
@@ -578,7 +578,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || bodyJson.correlation_id || primaryJson.correlation_id || uuid();\nconst workflowId = initContextJson.workflow_id || bodyJson.workflow_id || primaryJson.workflow_id || uuid();\nconst productId = initContextJson.product_id || bodyJson.product_id || primaryJson.product_id || null;\nconst retryCount = primaryJson.retry_count || 0;\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: error.code || \"SCRIPTWRITER_FAILED\",\n    error_details: error.details || error.message || null,\n    product_id: productId,\n    retry_count: retryCount\n  }\n};\nreturn [{ json: { event_payload: eventPayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, retry_count: retryCount, error } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || initContextJson.correlationId || bodyJson.correlation_id || bodyJson.correlationId || primaryJson.correlation_id || primaryJson.correlationId || uuid();\nconst workflowId = initContextJson.workflow_id || initContextJson.workflowId || bodyJson.workflow_id || bodyJson.workflowId || primaryJson.workflow_id || primaryJson.workflowId || uuid();\nconst productId = initContextJson.product_id || initContextJson.productId || bodyJson.product_id || bodyJson.productId || primaryJson.product_id || primaryJson.productId || null;\nconst retryCount = primaryJson.retry_count || 0;\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: error.code || \"SCRIPTWRITER_FAILED\",\n    error_details: error.details || error.message || null,\n    product_id: productId,\n    retry_count: retryCount\n  }\n};\nreturn [{ json: { event_payload: eventPayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, retry_count: retryCount, error } }];"
       },
       "id": "Build Unhandled Error Event",
       "name": "Build Unhandled Error Event",

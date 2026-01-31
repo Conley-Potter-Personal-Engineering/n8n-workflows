@@ -11,26 +11,40 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 - **Response mode**: Responds via Respond to Webhook nodes
 
 ## Input contract
-### Required fields
-- `product_id` (string, UUID)
+### Required fields (camelCase)
+- `productId` (string, UUID)
 - `creativePatternId` (string, UUID)
 - `trendSnapshotId` (string, UUID)
 
-### Optional fields
-- `correlation_id` (string, UUID) - If not provided, will be auto-generated
-- `experiment_id` (string, UUID)
+### Optional fields (camelCase)
+- `experimentId` (string, UUID)
+- `correlationId` (string, UUID) - If not provided, will be auto-generated
+- `workflowId` (string, UUID) - If not provided, will be auto-generated
 
-### Auto-generated fields
-- `workflow_id` (string, UUID) - Always generated internally; must not be provided as input
+### Accepted input formats
+- The webhook can receive either snake_case or camelCase fields; the workflow normalizes to camelCase before calling the backend.
 
-### Example payload
+### Example payload (camelCase)
+```json
+{
+  "productId": "prod_123",
+  "creativePatternId": "pattern_xyz",
+  "trendSnapshotId": "trend_abc",
+  "experimentId": "exp_456",
+  "correlationId": "corr_789",
+  "workflowId": "wf_012"
+}
+```
+
+### Example payload (snake_case)
 ```json
 {
   "product_id": "prod_123",
-  "creativePatternId": "pattern_xyz",
-  "trendSnapshotId": "trend_abc",
+  "creative_pattern_id": "pattern_xyz",
+  "trend_snapshot_id": "trend_abc",
   "experiment_id": "exp_456",
   "correlation_id": "corr_789",
+  "workflow_id": "wf_012"
 }
 ```
 
@@ -44,7 +58,7 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 
 ## External Calls
 - `POST ${ACE_BACKEND_URL}/api/system-events`
-- `POST ${ACE_BACKEND_URL}/api/agents/scriptwriter/run`
+- `POST ${ACE_BACKEND_URL}/api/agents/ScriptwriterAgent/run`
 
 ## Retry and Timeout
 - Scriptwriter Agent timeout: **120 seconds**
