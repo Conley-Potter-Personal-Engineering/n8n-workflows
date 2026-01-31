@@ -52,7 +52,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || uuid();\nconst workflowId = uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || uuid();\nconst workflowId = uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
       },
       "id": "Build Validation Error",
       "name": "Build Validation Error",
@@ -154,7 +154,7 @@
             },
             {
               "name": "metadata",
-              "value": "={{ ({\n  stage: \"scriptwriter\",\n  product_id: $json.product_id,\n  experiment_id: $json.experiment_id,\n  context: $json.context\n}) }}"
+              "value": "={{ ({\n  stage: \"ScriptwriterAgent\",\n  product_id: $json.product_id,\n  experiment_id: $json.experiment_id,\n  context: $json.context\n}) }}"
             }
           ]
         },
@@ -434,7 +434,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst workflowId = $node[\"Init Context\"].json.workflow_id;\nconst correlationId = $node[\"Init Context\"].json.correlation_id;\nconst productId = $node[\"Init Context\"].json.product_id;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    script_id: scriptId,\n    product_id: productId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: workflowId,\n    correlation_id: correlationId\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, duration_ms: duration, data } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst data = response.data || response;\nconst scriptId = data.script_id || \"\";\nconst script = data.script || null;\nconst workflowId = $node[\"Init Context\"].json.workflow_id;\nconst correlationId = $node[\"Init Context\"].json.correlation_id;\nconst productId = $node[\"Init Context\"].json.product_id;\nconst eventPayload = {\n  event_type: \"workflow.stage.success\",\n  event_category: \"workflow\",\n  severity: \"info\",\n  message: \"Scriptwriter agent completed successfully\",\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    script_id: scriptId,\n    product_id: productId,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: true,\n  data: {\n    script_id: scriptId,\n    script,\n    workflow_id: workflowId,\n    correlation_id: correlationId\n  }\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, duration_ms: duration, data } }];"
       },
       "id": "Build Success Payload",
       "name": "Build Success Payload",
@@ -489,7 +489,7 @@
             },
             {
               "name": "metadata",
-              "value": "={{ ({\n  stage: \"scriptwriter\",\n  script_id: $json.data.script_id,\n  product_id: $json.product_id,\n  duration_ms: $json.duration_ms\n}) }}"
+              "value": "={{ ({\n  stage: \"ScriptwriterAgent\",\n  script_id: $json.data.script_id,\n  product_id: $json.product_id,\n  duration_ms: $json.duration_ms\n}) }}"
             }
           ]
         },
@@ -520,7 +520,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst err = response.error || {};\nconst message = err.message || \"Scriptwriter agent failed\";\nconst errorCode = err.code || err.statusCode || \"SCRIPTWRITER_FAILED\";\nconst details = err.description || err.details || err.message || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: errorCode,\n    error_details: details,\n    retry_count: 2,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"SCRIPTWRITER_FAILED\",\n    message\n  },\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 500 } }];"
+        "functionCode": "const startTime = $node[\"Init Context\"].json.start_time;\nconst duration = Date.now() - startTime;\nconst response = $json;\nconst err = response.error || {};\nconst message = err.message || \"Scriptwriter agent failed\";\nconst errorCode = err.code || err.statusCode || \"SCRIPTWRITER_FAILED\";\nconst details = err.description || err.details || err.message || null;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: errorCode,\n    error_details: details,\n    retry_count: 2,\n    duration_ms: duration\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"SCRIPTWRITER_FAILED\",\n    message\n  },\n  workflow_id: $node[\"Init Context\"].json.workflow_id,\n  correlation_id: $node[\"Init Context\"].json.correlation_id\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 500 } }];"
       },
       "id": "Build Error Payload",
       "name": "Build Error Payload",
@@ -578,7 +578,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || bodyJson.correlation_id || primaryJson.correlation_id || uuid();\nconst workflowId = initContextJson.workflow_id || bodyJson.workflow_id || primaryJson.workflow_id || uuid();\nconst productId = initContextJson.product_id || bodyJson.product_id || primaryJson.product_id || null;\nconst retryCount = primaryJson.retry_count || 0;\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"scriptwriter\",\n    error_code: error.code || \"SCRIPTWRITER_FAILED\",\n    error_details: error.details || error.message || null,\n    product_id: productId,\n    retry_count: retryCount\n  }\n};\nreturn [{ json: { event_payload: eventPayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, retry_count: retryCount, error } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst error = $json.error || {};\nconst execution = $json.execution || {};\nconst runData = execution?.data?.resultData?.runData || {};\nconst initContextJson = runData[\"Init Context\"]?.[0]?.data?.main?.[0]?.[0]?.json || {};\nconst primaryJson = execution?.data?.main?.[0]?.[0]?.json || {};\nconst bodyJson = primaryJson.body || {};\nconst correlationId = initContextJson.correlation_id || bodyJson.correlation_id || primaryJson.correlation_id || uuid();\nconst workflowId = initContextJson.workflow_id || bodyJson.workflow_id || primaryJson.workflow_id || uuid();\nconst productId = initContextJson.product_id || bodyJson.product_id || primaryJson.product_id || null;\nconst retryCount = primaryJson.retry_count || 0;\nconst message = error.message || \"Unhandled workflow error\";\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message: `Scriptwriter agent failed: ${message}`,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: error.code || \"SCRIPTWRITER_FAILED\",\n    error_details: error.details || error.message || null,\n    product_id: productId,\n    retry_count: retryCount\n  }\n};\nreturn [{ json: { event_payload: eventPayload, workflow_id: workflowId, correlation_id: correlationId, product_id: productId, retry_count: retryCount, error } }];"
       },
       "id": "Build Unhandled Error Event",
       "name": "Build Unhandled Error Event",
@@ -633,7 +633,7 @@
             },
             {
               "name": "metadata",
-              "value": "={{ ({\n  stage: \"scriptwriter\",\n  error_code: $json.error.code || \"SCRIPTWRITER_FAILED\",\n  error_details: $json.error.details || $json.error.message,\n  product_id: $json.product_id,\n  retry_count: $json.retry_count || 0\n}) }}"
+              "value": "={{ ({\n  stage: \"ScriptwriterAgent\",\n  error_code: $json.error.code || \"SCRIPTWRITER_FAILED\",\n  error_details: $json.error.details || $json.error.message,\n  product_id: $json.product_id,\n  retry_count: $json.retry_count || 0\n}) }}"
             }
           ]
         },
