@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const normalizeBody = (source) => {\n  if (source && typeof source === \"object\" && !Array.isArray(source)) {\n    return source;\n  }\n  if (typeof source === \"string\") {\n    try {\n      return JSON.parse(source);\n    } catch (error) {\n      return {};\n    }\n  }\n  return {};\n};\nconst body = normalizeBody($json.body ?? $json);\nconst required = [\"productId\", \"creativePatternId\", \"trendSnapshotId\"];\nconst hasValue = (key) => {\n  const snakeKey = key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`);\n  return body[key] || body[snakeKey];\n};\nconst missing = required.filter((key) => !hasValue(key));\nreturn [{ json: { valid: missing.length === 0, missing, body } }];"
+        "functionCode": "const normalizeBody = (source) => {\n  if (source && typeof source === \"object\" && !Array.isArray(source)) {\n    return source;\n  }\n  if (typeof source === \"string\") {\n    try {\n      return JSON.parse(source);\n    } catch (error) {\n      return {};\n    }\n  }\n  return {};\n};\nconst normalizeHeaderValue = (value) => {\n  if (Array.isArray(value)) {\n    return value[0];\n  }\n  return value;\n};\nconst headers = $json.headers || {};\nconst body = normalizeBody($json.body ?? $json);\nconst required = [\"productId\", \"creativePatternId\", \"trendSnapshotId\"];\nconst hasValue = (key) => {\n  const snakeKey = key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`);\n  return body[key] || body[snakeKey];\n};\nconst missing = required.filter((key) => !hasValue(key));\nconst normalizedHeaders = {\n  \"x-correlation-id\": normalizeHeaderValue(headers[\"x-correlation-id\"]),\n  \"x-workflow-id\": normalizeHeaderValue(headers[\"x-workflow-id\"])\n};\nreturn [{ json: { valid: missing.length === 0, missing, body, headers: normalizedHeaders } }];"
       },
       "id": "Validate Input",
       "name": "Validate Input",
@@ -52,7 +52,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst body = $json.body || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst correlationId = body.correlation_id || body.correlationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst normalizeHeaderValue = (value) => {\n  if (Array.isArray(value)) {\n    return value[0];\n  }\n  return value;\n};\nconst body = $json.body || {};\nconst headers = $json.headers || {};\nconst missing = $json.missing || [];\nconst error = $json.error || \"\";\nconst headerCorrelationId = normalizeHeaderValue(headers[\"x-correlation-id\"]);\nconst headerWorkflowId = normalizeHeaderValue(headers[\"x-workflow-id\"]);\nconst correlationId = body.correlation_id || body.correlationId || headerCorrelationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || headerWorkflowId || uuid();\nconst message = error || `Missing required fields: ${missing.join(\", \")}`;\nconst eventPayload = {\n  event_type: \"workflow.stage.error\",\n  event_category: \"workflow\",\n  severity: \"error\",\n  message,\n  workflow_id: workflowId,\n  correlation_id: correlationId,\n  metadata: {\n    stage: \"ScriptwriterAgent\",\n    error_code: \"VALIDATION_ERROR\",\n    error_details: missing.join(\", \") || error,\n    retry_count: 0\n  }\n};\nconst responsePayload = {\n  success: false,\n  error: {\n    code: \"VALIDATION_ERROR\",\n    message\n  },\n  workflow_id: workflowId,\n  correlation_id: correlationId\n};\nreturn [{ json: { event_payload: eventPayload, response_payload: responsePayload, statusCode: 400 } }];"
       },
       "id": "Build Validation Error",
       "name": "Build Validation Error",
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst normalizeBody = (source) => {\n  if (source && typeof source === \"object\" && !Array.isArray(source)) {\n    return source;\n  }\n  if (typeof source === \"string\") {\n    try {\n      return JSON.parse(source);\n    } catch (error) {\n      return {};\n    }\n  }\n  return {};\n};\nconst body = normalizeBody($json.body ?? $json);\nconst productId = body.product_id || body.productId;\nconst creativePatternId = body.creative_pattern_id || body.creativePatternId;\nconst trendSnapshotId = body.trend_snapshot_id || body.trendSnapshotId;\nconst experimentId = body.experiment_id || body.experimentId;\nconst correlationId = body.correlation_id || body.correlationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || uuid();\nconst context = body.context || null;\nreturn [{\n  json: {\n    product_id: productId,\n    productId,\n    creative_pattern_id: creativePatternId,\n    creativePatternId,\n    trend_snapshot_id: trendSnapshotId,\n    trendSnapshotId,\n    experiment_id: experimentId,\n    experimentId,\n    correlation_id: correlationId,\n    correlationId,\n    workflow_id: workflowId,\n    workflowId,\n    context,\n    start_time: Date.now()\n  }\n}];"
+        "functionCode": "const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => \n{const r = Math.random() * 16 | 0;\nconst v = c === 'x' ? r : (r & 0x3 | 0x8);\nreturn v.toString(16); });\nconst normalizeBody = (source) => {\n  if (source && typeof source === \"object\" && !Array.isArray(source)) {\n    return source;\n  }\n  if (typeof source === \"string\") {\n    try {\n      return JSON.parse(source);\n    } catch (error) {\n      return {};\n    }\n  }\n  return {};\n};\nconst normalizeHeaderValue = (value) => {\n  if (Array.isArray(value)) {\n    return value[0];\n  }\n  return value;\n};\nconst headers = $json.headers || {};\nconst body = normalizeBody($json.body ?? $json);\nconst productId = body.product_id || body.productId;\nconst creativePatternId = body.creative_pattern_id || body.creativePatternId;\nconst trendSnapshotId = body.trend_snapshot_id || body.trendSnapshotId;\nconst experimentId = body.experiment_id || body.experimentId;\nconst headerCorrelationId = normalizeHeaderValue(headers[\"x-correlation-id\"]);\nconst headerWorkflowId = normalizeHeaderValue(headers[\"x-workflow-id\"]);\nconst correlationId = body.correlation_id || body.correlationId || headerCorrelationId || uuid();\nconst workflowId = body.workflow_id || body.workflowId || headerWorkflowId || uuid();\nconst context = body.context || null;\nreturn [{\n  json: {\n    product_id: productId,\n    productId,\n    creative_pattern_id: creativePatternId,\n    creativePatternId,\n    trend_snapshot_id: trendSnapshotId,\n    trendSnapshotId,\n    experiment_id: experimentId,\n    experimentId,\n    correlation_id: correlationId,\n    correlationId,\n    workflow_id: workflowId,\n    workflowId,\n    context,\n    start_time: Date.now()\n  }\n}];"
       },
       "id": "Init Context",
       "name": "Init Context",
@@ -173,7 +173,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -185,6 +185,14 @@
             {
               "name": "x-api-key",
               "value": "={{$env.ACE_API_KEY}}"
+            },
+            {
+              "name": "x-workflow-id",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
+            },
+            {
+              "name": "x-correlation-id",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             }
           ]
         },
@@ -265,7 +273,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -277,6 +285,14 @@
             {
               "name": "x-api-key",
               "value": "={{$env.ACE_API_KEY}}"
+            },
+            {
+              "name": "x-workflow-id",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
+            },
+            {
+              "name": "x-correlation-id",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             }
           ]
         },
@@ -357,7 +373,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/ScriptwriterAgent/run",
+        "url": "={{$env.ACE_BACKEND_URL}}/api/agents/scriptwriter/run",
         "authentication": "none",
         "sendBody": true,
         "options": {
@@ -369,6 +385,14 @@
             {
               "name": "x-api-key",
               "value": "={{$env.ACE_API_KEY}}"
+            },
+            {
+              "name": "x-workflow-id",
+              "value": "={{$node[\"Init Context\"].json.workflowId}}"
+            },
+            {
+              "name": "x-correlation-id",
+              "value": "={{$node[\"Init Context\"].json.correlationId}}"
             }
           ]
         },

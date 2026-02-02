@@ -11,6 +11,10 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 - **Response mode**: Responds via Respond to Webhook nodes
 
 ## Input contract
+### Optional headers
+- `x-correlation-id` (string, UUID) - If not provided, will be auto-generated
+- `x-workflow-id` (string, UUID) - If not provided, will be auto-generated
+
 ### Required fields (camelCase)
 - `productId` (string, UUID)
 - `creativePatternId` (string, UUID)
@@ -24,6 +28,7 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 ### Accepted input formats
 - The webhook can receive either snake_case or camelCase fields; the workflow normalizes to camelCase before calling the backend.
 - The workflow accepts inputs whether n8n provides the payload at `$json.body` or directly on `$json` (some webhook configurations or content types differ). If your client sends a raw JSON string, ensure `Content-Type: application/json` so n8n parses it.
+- If `x-correlation-id` or `x-workflow-id` headers are provided, they take precedence over auto-generated IDs.
 
 ### Example payload (camelCase)
 ```json
@@ -52,14 +57,14 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 ## Processing Steps
 1. Validate required fields and return a 400 error if missing.
 2. Emit `workflow.stage.start` system event (best-effort; does not block execution).
-3. Invoke Scriptwriter Agent with retry and timeout handling.
+3. Invoke Scriptwriter Agent with retry and timeout handling, passing `x-correlation-id` and `x-workflow-id` headers.
 4. On success, emit `workflow.stage.success` and return normalized response.
 5. On failure, emit `workflow.stage.error` and return error response.
 6. Error Trigger catches unhandled exceptions and emits `workflow.stage.error`.
 
 ## External Calls
 - `POST ${ACE_BACKEND_URL}/api/system-events`
-- `POST ${ACE_BACKEND_URL}/api/agents/ScriptwriterAgent/run`
+- `POST ${ACE_BACKEND_URL}/api/agents/scriptwriter/run`
 
 ## Retry and Timeout
 - Scriptwriter Agent timeout: **120 seconds**
@@ -96,7 +101,7 @@ Invokes the Scriptwriter Agent HTTP endpoint to generate video scripts using tre
 - `workflow.stage.success`
 - `workflow.stage.error`
 
-All events include `correlation_id` and `workflow_id`.
+All events include `correlation_id` and `workflow_id` sourced from headers or generated defaults.
 
 ## Environment Variables
 - `ACE_BACKEND_URL`
